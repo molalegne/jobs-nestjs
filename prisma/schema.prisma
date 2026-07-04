@@ -1,0 +1,530 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String              @id @default(uuid())
+  email                 String              @unique
+  passwordHash          String
+  firstName             String
+  lastName              String
+  role                  UserRole            @default(JOB_SEEKER)
+  avatarUrl             String?
+  phone                 String?
+  telegramId            String?             @unique
+  isActive              Boolean             @default(true)
+  emailVerified         Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  bio                   String?
+  defaultResumeUrl      String?
+  githubUrl             String?
+  headline              String?
+  linkedinUrl           String?
+  location              String?
+  portfolioUrl          String?
+  skills                String[]            @default([])
+  applications          Application[]
+  bids                  Bid[]
+  candidateScores       CandidateScore[]
+  chatParticipants      ChatParticipant[]
+  company               Company?
+  contractsAsClient     Contract[]          @relation("ContractClient")
+  contractsAsFreelancer Contract[]          @relation("ContractFreelancer")
+  freelanceJobs         FreelanceJob[]
+  wallet                FreelancerWallet?
+  messages              Message[]
+  notifications         Notification[]
+  refreshTokens         RefreshToken[]
+  verificationTokens    VerificationToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  type      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("verification_tokens")
+}
+
+model Company {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  logoUrl       String?
+  website       String?
+  industry      String?
+  size          String?
+  verified      Boolean  @default(false)
+  userId        String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  benefits      String[] @default([])
+  coverImageUrl String?
+  facebookUrl   String?
+  foundedYear   Int?
+  linkedinUrl   String?
+  location      String?
+  twitterUrl    String?
+  user          User     @relation(fields: [userId], references: [id])
+  jobs          Job[]
+
+  @@map("companies")
+}
+
+model JobCategory {
+  id    String  @id @default(uuid())
+  slug  String  @unique
+  label String
+  icon  String?
+  jobs  Job[]
+
+  @@map("job_categories")
+}
+
+model Job {
+  id                String        @id @default(uuid())
+  title             String
+  description       String
+  requirements      String?
+  location          String
+  type              JobType
+  categoryId        String
+  salaryMin         Int?
+  salaryMax         Int?
+  currency          String        @default("ETB")
+  deadline          DateTime?
+  status            JobStatus     @default(DRAFT)
+  featured          Boolean       @default(false)
+  companyId         String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  applyEmail        String?
+  applyType         String?
+  applyUrl          String?
+  companyLogo       String?
+  companyName       String?
+  contactPhone      String?
+  experienceLevel   String?
+  expiryDate        DateTime?
+  filled            Boolean       @default(false)
+  gender            String?
+  jobSite           String?
+  qualification     String?
+  salaryType        String?
+  tags              String[]      @default([])
+  urgent            Boolean       @default(false)
+  vacancies         Int?          @default(1)
+  yearsOfExperience String?
+  applications      Application[]
+  questions         JobQuestion[]
+  category          JobCategory   @relation(fields: [categoryId], references: [id])
+  company           Company       @relation(fields: [companyId], references: [id])
+
+  @@index([title, location])
+  @@index([status, featured])
+  @@index([companyId, status])
+  @@index([categoryId, status])
+  @@index([expiryDate])
+  @@map("jobs")
+}
+
+model JobQuestion {
+  id        String   @id @default(uuid())
+  jobId     String
+  question  String
+  type      String   @default("TEXT")
+  options   String[] @default([])
+  required  Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_questions")
+}
+
+model Application {
+  id               String            @id @default(uuid())
+  jobId            String
+  userId           String
+  coverLetter      String?
+  resumeUrl        String?
+  status           ApplicationStatus @default(SUBMITTED)
+  interviewSlot    DateTime?
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  expectedSalary   Int?
+  portfolioUrl     String?
+  screeningAnswers Json?
+  job              Job               @relation(fields: [jobId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
+  score            CandidateScore?
+
+  @@unique([jobId, userId])
+  @@index([userId, status])
+  @@index([jobId, status])
+  @@map("applications")
+}
+
+model CandidateScore {
+  id              String      @id @default(uuid())
+  applicationId   String      @unique
+  userId          String
+  overallScore    Float
+  skillScore      Float
+  experienceScore Float
+  cultureFitScore Float?
+  reasoning       String?
+  rawAiResponse   Json?
+  modelUsed       String      @default("gpt-4o-mini")
+  scoredAt        DateTime    @default(now())
+  application     Application @relation(fields: [applicationId], references: [id])
+  user            User        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("candidate_scores")
+}
+
+model FreelanceCategory {
+  id    String         @id @default(uuid())
+  slug  String         @unique
+  label String
+  icon  String?
+  jobs  FreelanceJob[]
+
+  @@map("freelance_categories")
+}
+
+model FreelanceJob {
+  id                 String             @id @default(uuid())
+  title              String
+  description        String
+  categoryId         String
+  clientId           String
+  budgetMin          Int
+  budgetMax          Int
+  currency           String             @default("ETB")
+  pricingType        String             @default("FIXED")
+  deadlineDays       Int
+  skills             String[]
+  status             FreelanceJobStatus @default(DRAFT)
+  featured           Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  attachments        String[]           @default([])
+  experienceLevel    String?
+  locationPreference String?
+  bids               Bid[]
+  contract           Contract?
+  escrowTx           EscrowTransaction?
+  category           FreelanceCategory  @relation(fields: [categoryId], references: [id])
+  client             User               @relation(fields: [clientId], references: [id])
+
+  @@map("freelance_jobs")
+}
+
+model Bid {
+  id             String       @id @default(uuid())
+  freelanceJobId String
+  freelancerId   String
+  amount         Int
+  timelineDays   Int
+  coverLetter    String
+  status         BidStatus    @default(PENDING)
+  qualityScore   Float?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  freelanceJob   FreelanceJob @relation(fields: [freelanceJobId], references: [id])
+  freelancer     User         @relation(fields: [freelancerId], references: [id])
+
+  @@unique([freelanceJobId, freelancerId])
+  @@map("bids")
+}
+
+model Contract {
+  id             String         @id @default(uuid())
+  freelanceJobId String         @unique
+  clientId       String
+  freelancerId   String
+  agreedAmount   Int
+  currency       String         @default("ETB")
+  status         ContractStatus @default(ACTIVE)
+  startedAt      DateTime       @default(now())
+  completedAt    DateTime?
+  updatedAt      DateTime       @updatedAt
+  client         User           @relation("ContractClient", fields: [clientId], references: [id])
+  freelanceJob   FreelanceJob   @relation(fields: [freelanceJobId], references: [id])
+  freelancer     User           @relation("ContractFreelancer", fields: [freelancerId], references: [id])
+  dispute        Dispute?
+  milestones     Milestone[]
+
+  @@map("contracts")
+}
+
+model Milestone {
+  id           String          @id @default(uuid())
+  contractId   String
+  title        String
+  description  String?
+  amount       Int
+  deadline     DateTime
+  status       MilestoneStatus @default(PENDING)
+  approvedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deliverables Deliverable[]
+  contract     Contract        @relation(fields: [contractId], references: [id])
+
+  @@map("milestones")
+}
+
+model Deliverable {
+  id          String    @id @default(uuid())
+  milestoneId String
+  fileUrl     String?
+  notes       String?
+  submittedAt DateTime  @default(now())
+  milestone   Milestone @relation(fields: [milestoneId], references: [id])
+
+  @@map("deliverables")
+}
+
+model EscrowTransaction {
+  id              String       @id @default(uuid())
+  freelanceJobId  String       @unique
+  grossAmount     Int
+  platformFee     Int
+  netAmount       Int
+  currency        String       @default("ETB")
+  status          EscrowStatus @default(PENDING)
+  gatewayRef      String?
+  gatewayResponse Json?
+  fundedAt        DateTime?
+  releasedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  freelanceJob    FreelanceJob @relation(fields: [freelanceJobId], references: [id])
+
+  @@map("escrow_transactions")
+}
+
+model FreelancerWallet {
+  id               String              @id @default(uuid())
+  userId           String              @unique
+  pendingBalance   Int                 @default(0)
+  availableBalance Int                 @default(0)
+  currency         String              @default("ETB")
+  updatedAt        DateTime            @updatedAt
+  user             User                @relation(fields: [userId], references: [id])
+  transactions     WalletTransaction[]
+
+  @@map("freelancer_wallets")
+}
+
+model WalletTransaction {
+  id          String                @id @default(uuid())
+  walletId    String
+  type        WalletTransactionType
+  amount      Int
+  note        String?
+  milestoneId String?
+  createdAt   DateTime              @default(now())
+  wallet      FreelancerWallet      @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, createdAt])
+  @@map("wallet_transactions")
+}
+
+model Dispute {
+  id           String    @id @default(uuid())
+  contractId   String    @unique
+  raisedById   String
+  reason       String
+  evidenceUrls String[]
+  resolution   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  contract     Contract  @relation(fields: [contractId], references: [id])
+
+  @@map("disputes")
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  channel   NotificationChannel @default(IN_APP)
+  type      String
+  title     String
+  body      String
+  read      Boolean             @default(false)
+  metadata  Json?
+  createdAt DateTime            @default(now())
+  user      User                @relation(fields: [userId], references: [id])
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model EventLog {
+  id          String   @id @default(uuid())
+  eventType   String
+  entityId    String
+  entityType  String
+  payload     Json
+  processedBy String?
+  createdAt   DateTime @default(now())
+
+  @@index([eventType, entityId])
+  @@map("events_log")
+}
+
+model ChatRoom {
+  id           String            @id @default(uuid())
+  contractId   String?           @unique
+  jobId        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  participants ChatParticipant[]
+  messages     Message[]
+
+  @@map("chat_rooms")
+}
+
+model ChatParticipant {
+  id         String    @id @default(uuid())
+  roomId     String
+  userId     String
+  joinedAt   DateTime  @default(now())
+  lastReadAt DateTime?
+  room       ChatRoom  @relation(fields: [roomId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+  @@map("chat_participants")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  roomId    String
+  senderId  String
+  content   String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  room      ChatRoom @relation(fields: [roomId], references: [id])
+  sender    User     @relation(fields: [senderId], references: [id])
+
+  @@index([roomId, createdAt])
+  @@map("messages")
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYER
+  JOB_SEEKER
+  FREELANCER
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  REMOTE
+  HYBRID
+  CONTRACT
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SCREENING
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  OFFERED
+  REJECTED
+  WITHDRAWN
+}
+
+enum FreelanceJobStatus {
+  DRAFT
+  FUNDED
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REVISION_REQUESTED
+}
+
+enum EscrowStatus {
+  PENDING
+  FUNDED
+  IN_REVIEW
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+enum WalletTransactionType {
+  CREDIT_PENDING
+  CREDIT_AVAILABLE
+  DEBIT_WITHDRAWAL
+  DEBIT_FEE
+}
+
+enum NotificationChannel {
+  IN_APP
+  TELEGRAM
+  EMAIL
+}
