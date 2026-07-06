@@ -46,29 +46,29 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   // ── Swagger (disabled in production) ──────────────────────────────────────
-  if (nodeEnv !== 'production') {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('Beleqet API')
-      .setDescription(
-        'Beleqet Hiring Platform — Jobs Board, Freelance Marketplace, BeleqetSafe Escrow',
-      )
-      .setVersion('1.0')
-      .addBearerAuth()
-      .addTag('auth', 'Authentication & session management')
-      .addTag('users', 'User profile management')
-      .addTag('jobs', 'Job listings & search')
-      .addTag('applications', 'Job applications & workflow')
-      .addTag('freelance', 'Freelance gigs, bids & contracts')
-      .addTag('escrow', 'BeleqetSafe escrow & payments')
-      .addTag('wallet', 'Freelancer wallet & withdrawals')
-      .addTag('notifications', 'Notification management')
-      .addTag('analytics', 'Platform analytics')
-      .build();
+  // if (nodeEnv !== 'production') {
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Beleqet API')
+    .setDescription(
+      'Beleqet Hiring Platform — Jobs Board, Freelance Marketplace, BeleqetSafe Escrow',
+    )
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('auth', 'Authentication & session management')
+    .addTag('users', 'User profile management')
+    .addTag('jobs', 'Job listings & search')
+    .addTag('applications', 'Job applications & workflow')
+    .addTag('freelance', 'Freelance gigs, bids & contracts')
+    .addTag('escrow', 'BeleqetSafe escrow & payments')
+    .addTag('wallet', 'Freelancer wallet & withdrawals')
+    .addTag('notifications', 'Notification management')
+    .addTag('analytics', 'Platform analytics')
+    .build();
 
-    const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('api/docs', app, document);
-    logger.log(`Swagger UI → http://localhost:${port}/api/docs`);
-  }
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document);
+  logger.log(`Swagger UI → http://localhost:${port}/api/docs`);
+  // }
 
   // ── Graceful shutdown ─────────────────────────────────────────────────────
   app.enableShutdownHooks();
