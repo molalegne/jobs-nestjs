@@ -17,7 +17,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const configService = app.get(ConfigService);
 
     // ── Security ──────────────────────────────────────────────────────────────
-    app.use(helmet());
+    app.use(
+      helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: [`'self'`],
+            scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net', 'unpkg.com'],
+            styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net', 'unpkg.com', 'fonts.googleapis.com'],
+            imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
+            fontSrc: [`'self'`, 'fonts.googleapis.com', 'fonts.gstatic.com'],
+            connectSrc: [`'self'`],
+          },
+        },
+      }),
+    );
     app.enableCors({
       origin: configService.get<string>('FRONTEND_URL', 'http://localhost:3000'),
       credentials: true,
@@ -66,7 +79,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('api/docs', app, document);
+    SwaggerModule.setup('api/docs', app, document, {
+      customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui.css',
+      customJs: [
+        'https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js',
+        'https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-standalone-preset.js',
+      ],
+    });
 
     await app.init();
     cachedApp = app.getHttpAdapter().getInstance();

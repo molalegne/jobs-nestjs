@@ -16,7 +16,7 @@ async function bootstrap() {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   // ── Security ──────────────────────────────────────────────────────────────
-  app.use(helmet());
+  // app.use(helmet());
   app.enableCors({
     origin: configService.get<string>('FRONTEND_URL', 'http://localhost:3000'),
     credentials: true,
